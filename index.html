@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Budget Tracker</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        /* Mobile Frame Emulator */
+        .phone-container {
+            width: 360px;
+            height: 640px;
+            background-color: #ffffff;
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            border: 8px solid #333;
+        }
+        /* App Header */
+        .header {
+            background-color: #1a73e8;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        /* Main Content Screen Container */
+        .content-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            position: relative;
+        }
+        /* Hide screens by default */
+        .screen { display: none; }
+        .screen.active { display: flex; flex-direction: column; height: 100%; }
+
+        /* SCREEN 1: HOME STYLES */
+        .donut-chart {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            border: 15px solid #e8eaed;
+            border-top: 15px solid #34a853;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 25px auto;
+            font-weight: bold;
+        }
+        .donut-chart span { font-size: 0.8rem; color: #5f6368; }
+        .transaction-list { width: 100%; }
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 10px;
+            border-bottom: 1px solid #e8eaed;
+            font-size: 0.95rem;
+        }
+        .negative-amount { color: #d93025; font-weight: bold; }
+
+        /* SCREEN 2: ADD EXPENSE STYLES */
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 0.85rem; color: #5f6368; margin-bottom: 5px; }
+        .display-box {
+            width: 100%;
+            padding: 10px;
+            font-size: 1.4rem;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            background: #f8f9fa;
+            text-align: right;
+            font-weight: bold;
+        }
+        select, input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+        }
+        /* Numpad Grid Layout */
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: auto;
+        }
+        .num-btn {
+            background-color: #f1f3f4;
+            border: none;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .num-btn:active { background-color: #e8eaed; }
+        .btn-action { background-color: #dadce0; }
+        .btn-success { background-color: #34a853; color: white; }
+
+        /* SCREEN 3: ANALYSIS STYLES */
+        .splits-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .split-bubble {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background-color: #f1f3f4;
+            border: 4px solid #1a73e8;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .bar-chart {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 150px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 5px;
+            margin-top: 20px;
+        }
+        .bar-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 20%;
+        }
+        .bar {
+            width: 100%;
+            background-color: #1a73e8;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.3s ease;
+        }
+        .bar-label { font-size: 0.75rem; margin-top: 5px; color: #5f6368; }
+
+        /* Navigation Bar */
+        .nav-bar {
+            height: 60px;
+            background-color: #ffffff;
+            border-top: 1px solid #e8eaed;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .nav-item {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #5f6368;
+            cursor: pointer;
+            flex: 1;
+            padding: 5px;
+        }
+        .nav-item.active { color: #1a73e8; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="phone-container">
+        <div class="header" id="app-title">🏠 Expense Tracker</div>
+        
+        <div class="content-area">
+            
+            <div id="screen-home" class="screen active">
+                <div class="donut-chart">
+                    <div id="home-spent">0 PKR</div>
+                    <span>Spent</span>
+                    <div id="home-left" style="font-size: 0.85rem; margin-top: 5px; color: #34a853;">Total Budget</div>
+                </div>
+                <div class="transaction-list">
+                    <h4 style="margin: 0 0 10px 0; color: #3c4043;">Recent Expenses</h4>
+                    <div id="transactions-container">
+                        </div>
+                </div>
+            </div>
+
+            <div id="screen-add" class="screen">
+                <div class="input-group">
+                    <label>Amount (PKR)</label>
+                    <div id="amount-display" class="display-box">0</div>
+                </div>
+                <div class="input-group">
+                    <label>Category</label>
+                    <select id="category-select">
+                        <option value="Needs">Needs (Food/Bills)</option>
+                        <option value="Wants">Wants (Games/Fun)</option>
+                        <option value="Emergencies">Emergencies</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Date</label>
+                    <input type="date" id="date-input">
+                </div>
+                
+                <div class="numpad">
+                    <button class="num-btn" onclick="pressNum('1')">1</button>
+                    <button class="num-btn" onclick="pressNum('2')">2</button>
+                    <button class="num-btn" onclick="pressNum('3')">3</button>
+                    <button class="num-btn" onclick="pressNum('4')">4</button>
+                    <button class="num-btn" onclick="pressNum('5')">5</button>
+                    <button class="num-btn" onclick="pressNum('6')">6</button>
+                    <button class="num-btn" onclick="pressNum('7')">7</button>
+                    <button class="num-btn" onclick="pressNum('8')">8</button>
+                    <button class="num-btn" onclick="pressNum('9')">9</button>
+                    <button class="num-btn btn-action" onclick="pressClear()">C</button>
+                    <button class="num-btn" onclick="pressNum('0')">0</button>
+                    <button class="num-btn btn-success" onclick="saveExpense()">✓</button>
+                </div>
+            </div>
+
+            <div id="screen-analysis" class="screen">
+                <div class="splits-container">
+                    <div class="split-bubble">Needs (30%)<br><span id="split-needs">0</span></div>
+                    <div class="split-bubble">Wants (30%)<br><span id="split-wants">0</span></div>
+                    <div class="split-bubble">Emerg (40%)<br><span id="split-emerg">0</span></div>
+                </div>
+
+                <h4 style="margin: 0; color: #3c4043;">Monthly Breakdown</h4>
+                <div class="bar-chart">
+                    <div class="bar-container"><div class="bar" id="bar-needs" style="height: 0px;"></div><span class="bar-label">Needs</span></div>
+                    <div class="bar-container"><div class="bar" id="bar-wants" style="height: 0px;"></div><span class="bar-label">Wants</span></div>
+                    <div class="bar-container"><div class="bar" id="bar-emerg" style="height: 0px;"></div><span class="bar-label">Emerg</span></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="nav-bar">
+            <div class="nav-item active" onclick="switchScreen('home', '🏠 Expense Tracker', this)">🏠<br>Home</div>
+            <div class="nav-item" onclick="switchScreen('add', '➕ Add Expense', this)">➕<br>Add</div>
+            <div class="nav-item" onclick="switchScreen('analysis', '📊 Analysis & Split', this)">📊<br>Analysis</div>
+        </div>
+    </div>
+
+    <script>
+        // Data Storage Array
+        let expenses = [];
+        let currentAmount = "0";
+
+        // Set default date picker to today
+        document.getElementById('date-input').valueAsDate = new Date();
+
+        // 1. Navigation Logic
+        function switchScreen(screenId, title, navElement) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById(`screen-${screenId}`).classList.add('active');
+            document.getElementById('app-title').innerText = title;
+            navElement.classList.add('active');
+
+            if(screenId === 'home' || screenId === 'analysis') {
+                updateUI();
+            }
+        }
+
+        // 2. Numpad Input Logic
+        function pressNum(num) {
+            if (currentAmount === "0") {
+                currentAmount = num;
+            } else {
+                currentAmount += num;
+            }
+            document.getElementById('amount-display').innerText = currentAmount;
+        }
+
+        function pressClear() {
+            currentAmount = "0";
+            document.getElementById('amount-display').innerText = currentAmount;
+        }
+
+        // 3. Save Data Logic
+        function saveExpense() {
+            let amt = parseInt(currentAmount);
+            if(amt <= 0) return alert("Please enter an amount");
+
+            let cat = document.getElementById('category-select').value;
+            let date = document.getElementById('date-input').value;
+
+            // Save to array memory
+            expenses.push({ amount: amt, category: cat, date: date });
+
+            // Reset numpad
+            pressClear();
+            
+            // Go back home automatically
+            switchScreen('home', '🏠 Expense Tracker', document.querySelectorAll('.nav-bar .nav-item')[0]);
+        }
+
+        // 4. Update Dashboard Calculations (Your 30/30/40 math)
+        function updateUI() {
+            let totalSpent = 0;
+            let needsSpent = 0;
+            let wantsSpent = 0;
+            let emergSpent = 0;
+
+            let listContainer = document.getElementById('transactions-container');
+            listContainer.innerHTML = "";
+
+            expenses.forEach(exp => {
+                totalSpent += exp.amount;
+                if(exp.category === 'Needs') needsSpent += exp.amount;
+                if(exp.category === 'Wants') wantsSpent += exp.amount;
+                if(exp.category === 'Emergencies') emergSpent += exp.amount;
+
+                // Append item to the UI list
+                listContainer.innerHTML += `
+                    <div class="transaction-item">
+                        <span>${exp.category} (${exp.date})</span>
+                        <span class="negative-amount">-${exp.amount} PKR</span>
+                    </div>
+                `;
+            });
+
+            // Update Home Screen Display
+            document.getElementById('home-spent').innerText = totalSpent + " PKR";
+
+            // Update Screen 3 Progress Metrics
+            document.getElementById('split-needs').innerText = needsSpent + " PKR";
+            document.getElementById('split-wants').innerText = wantsSpent + " PKR";
+            document.getElementById('split-emerg').innerText = emergSpent + " PKR";
+
+            // Dynamic Chart Scaling Rule (Max Height = 130px)
+            let maxVal = Math.max(needsSpent, wantsSpent, emergSpent) || 1;
+            document.getElementById('bar-needs').style.height = (needsSpent / maxVal * 130) + "px";
+            document.getElementById('bar-wants').style.height = (wantsSpent / maxVal * 130) + "px";
+            document.getElementById('bar-emerg').style.height = (emergSpent / maxVal * 130) + "px";
+        }
+    </script>
+</body>
+</html>
