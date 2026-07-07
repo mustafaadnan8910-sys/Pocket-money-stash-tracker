@@ -83,13 +83,30 @@
         /* Home Screen Card Layout */
         .header {
             margin-bottom: 24px;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .header h1 {
             font-size: 1.5rem;
             font-weight: 700;
             letter-spacing: -0.5px;
+        }
+
+        .btn-reset {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            color: var(--danger-glow);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-reset:active {
+            background: rgba(248, 113, 113, 0.2);
         }
 
         .stash-card {
@@ -180,6 +197,12 @@
             align-items: center;
         }
 
+        .item-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .item-info .item-cat {
             font-weight: 600;
             font-size: 0.95rem;
@@ -191,8 +214,30 @@
             margin-top: 2px;
         }
 
+        .item-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .item-amount {
             font-weight: 700;
+            color: var(--danger-glow);
+        }
+
+        .btn-delete-item {
+            background: none;
+            border: none;
+            color: rgba(248, 113, 113, 0.6);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-delete-item:active {
             color: var(--danger-glow);
         }
 
@@ -319,6 +364,7 @@
         <div id="screen-home" class="screen active">
             <div class="header">
                 <h1>Pocket Stash</h1>
+                <button class="btn-reset" onclick="resetAllData()">Reset All</button>
             </div>
             
             <div class="stash-card">
@@ -404,7 +450,7 @@
     </div>
 
     <script>
-        // CORE APP APP STATE (with local storage integration)
+        // CORE APP STATE
         let appData = {
             allowance: 5000,
             expenses: []
@@ -414,7 +460,6 @@
         let chosenCategory = "";
         let chosenIcon = "";
 
-        // On boot, load data
         window.onload = function() {
             const saved = localStorage.getItem('pocketStashData');
             if (saved) {
@@ -441,7 +486,6 @@
             document.getElementById('display-spent').innerText = "PKR " + totalSpent.toLocaleString();
             document.getElementById('display-allowance').innerText = "PKR " + appData.allowance.toLocaleString();
 
-            // Render Log History Elements
             const container = document.getElementById('log-container');
             container.innerHTML = "";
             
@@ -450,19 +494,45 @@
                 return;
             }
 
-            // Show newest transactions at top
-            [...appData.expenses].reverse().forEach(item => {
+            // Render log items with individual delete capability
+            [...appData.expenses].reverse().forEach((item, index) => {
+                // Map reversed index back to actual array position
+                const realIndex = appData.expenses.length - 1 - index;
+                
                 const row = document.createElement('div');
                 row.className = 'history-item';
                 row.innerHTML = `
-                    <div class="item-info">
-                        <div class="item-cat">${item.icon} ${item.category}</div>
-                        <div class="item-date">${item.date}</div>
+                    <div class="item-left">
+                        <div class="item-info">
+                            <div class="item-cat">${item.icon} ${item.category}</div>
+                            <div class="item-date">${item.date}</div>
+                        </div>
                     </div>
-                    <div class="item-amount">-Rs ${item.amount}</div>
+                    <div class="item-right">
+                        <div class="item-amount">-Rs ${item.amount.toLocaleString()}</div>
+                        <button class="btn-delete-item" onclick="deleteExpense(${realIndex})">✕</button>
+                    </div>
                 `;
                 container.appendChild(row);
             });
+        }
+
+        // Delete an individual entry
+        function deleteExpense(index) {
+            if (confirm("Delete this expense item?")) {
+                appData.expenses.splice(index, 1);
+                saveDataToDevice();
+                updateDashboard();
+            }
+        }
+
+        // Complete wipe
+        function resetAllData() {
+            if (confirm("Are you sure you want to completely clear out all logs and restart?")) {
+                appData.expenses = [];
+                saveDataToDevice();
+                updateDashboard();
+            }
         }
 
         // Keypad Logics
@@ -486,7 +556,6 @@
                 alert("Please type an expense amount first!");
                 return;
             }
-            // Reset categories styling
             document.querySelectorAll('.cat-card').forEach(c => c.classList.remove('selected'));
             chosenCategory = "";
             navigateTo('screen-category');
@@ -516,7 +585,6 @@
             saveDataToDevice();
             updateDashboard();
             
-            // reset state and clear inputs
             pressClear();
             navigateTo('screen-home');
         }
