@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pocket Money Stash Tracker</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pocket Stash">
+    <meta name="theme-color" content="#0b0f19">
+
     <style>
         :root {
             --bg-solid: #0b0f19;
@@ -13,9 +19,9 @@
             --text-gray: #94a3b8;
             --blue: #3b82f6;
             --green: #22c55e;
+            --yellow: #eab308;
             --red: #ef4444;
             --orange: #f97316;
-            --warning-bg: #451a1a;
         }
 
         * {
@@ -131,6 +137,7 @@
             cursor: pointer;
         }
 
+        /* Dynamic Stash Health Box */
         .main-stash-box {
             background-color: var(--card-bg);
             border-radius: 20px;
@@ -138,16 +145,21 @@
             text-align: center;
             margin-bottom: 16px;
             border: 2px solid #334155;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
+        .main-stash-box.state-safe { border-color: var(--green); }
+        .main-stash-box.state-warning { border-color: var(--yellow); box-shadow: 0 0 15px rgba(234, 179, 8, 0.2); }
+        .main-stash-box.state-danger { border-color: var(--red); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+
         .main-stash-box .lbl { font-size: 1rem; color: var(--text-gray); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
-        .main-stash-box .amt { font-size: 2.8rem; font-weight: 900; color: var(--green); margin-top: 4px; }
+        .main-stash-box .amt { font-size: 2.8rem; font-weight: 900; margin-top: 4px; }
 
         /* Budget Progress Rows & Alerts */
         .budget-rule-card {
             background-color: var(--card-inner);
             border-radius: 16px;
             padding: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             border: 1px solid #334155;
         }
         .budget-row { margin-bottom: 14px; }
@@ -186,8 +198,32 @@
             transition: width 0.3s ease, background-color 0.3s ease;
         }
 
+        /* History Filter Chips */
+        .filter-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .log-heading { font-size: 1.1rem; font-weight: 800; color: var(--text-gray); }
+        .filter-pills-group { display: flex; gap: 6px; }
+        .filter-chip {
+            background-color: var(--card-bg);
+            border: 1px solid #334155;
+            color: var(--text-gray);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .filter-chip.active {
+            background-color: var(--blue);
+            color: var(--text-white);
+            border-color: var(--blue);
+        }
+
         /* History Log List */
-        .log-heading { font-size: 1.1rem; font-weight: 800; color: var(--text-gray); margin-bottom: 10px; }
         .scrollable-history-list {
             flex: 1;
             overflow-y: auto;
@@ -358,7 +394,7 @@
                 </div>
             </div>
 
-            <div class="main-stash-box">
+            <div class="main-stash-box" id="stash-card-box">
                 <div class="lbl">Total Available Stash</div>
                 <div class="amt" id="v-total-stash">PKR 0</div>
             </div>
@@ -398,7 +434,15 @@
                 </div>
             </div>
 
-            <div class="log-heading">Transaction Records</div>
+            <div class="filter-section">
+                <div class="log-heading">Records</div>
+                <div class="filter-pills-group">
+                    <button class="filter-chip active" id="filter-btn-all" onclick="setHistoryFilter('all')">All</button>
+                    <button class="filter-chip" id="filter-btn-need" onclick="setHistoryFilter('need')">Needs</button>
+                    <button class="filter-chip" id="filter-btn-want" onclick="setHistoryFilter('want')">Wants</button>
+                </div>
+            </div>
+
             <div class="scrollable-history-list" id="v-history-container"></div>
 
             <button class="btn-trigger-log" onclick="viewRoute('screen-fastlog')">
@@ -463,10 +507,10 @@
         <div id="screen-config" class="screen">
             <button class="btn-nav-action" style="width:fit-content; margin-bottom:20px;" onclick="viewRoute('screen-dashboard')">← Dashboard</button>
             
-            <div class="log-heading">Modify Total Base Income Allowance</div>
+            <div class="log-heading" style="margin-bottom:8px;">Modify Total Base Income Allowance</div>
             <input type="number" class="form-input-element" id="cfg-field-allowance" placeholder="e.g. 5000">
 
-            <div class="log-heading">Update Security Lock PIN</div>
+            <div class="log-heading" style="margin-bottom:8px;">Update Security Lock PIN</div>
             <input type="text" maxlength="4" pattern="[0-9]*" class="form-input-element" id="cfg-field-pin" placeholder="e.g. 1234">
 
             <button class="btn-trigger-log" style="background-color: var(--green); margin-top: auto;" onclick="commitSystemSettings()">
@@ -486,6 +530,7 @@
         let activePinString = "";
         let runningExpenseString = "0";
         let activeScreen = "screen-lock";
+        let activeFilter = "all";
 
         window.onload = function() {
             const extraction = localStorage.getItem('stashTrackerEngineData');
@@ -497,9 +542,8 @@
             document.getElementById('cfg-field-pin').value = memoryStore.securityPin;
             refreshApplicationCore();
 
-            // PHYSICAL KEYBOARD LISTENER FOR PC USERS
+            // PHYSICAL KEYBOARD LISTENER
             document.addEventListener('keydown', function(event) {
-                // Ignore keydown if editing setup text inputs
                 if (document.activeElement.tagName === 'INPUT') return;
 
                 const key = event.key;
@@ -556,7 +600,14 @@
             document.getElementById(targetId).classList.add('active');
         }
 
-        // Calculations & Over-Budget Alert Logic
+        function setHistoryFilter(type) {
+            activeFilter = type;
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            document.getElementById(`filter-btn-${type}`).classList.add('active');
+            refreshApplicationCore();
+        }
+
+        // Core Calculation Engine & Dynamic Health Styling
         function refreshApplicationCore() {
             let aggregateSpent = 0;
             let totalSpentNeeds = 0;
@@ -571,7 +622,6 @@
                 }
             });
 
-            // 30-30-40 Rule Limits calculated directly from Total Base Allowance
             let limitNeeds = Math.floor(memoryStore.incomeBase * 0.30);
             let limitWants = Math.floor(memoryStore.incomeBase * 0.30);
             let targetSavings = Math.floor(memoryStore.incomeBase * 0.40);
@@ -580,10 +630,27 @@
             let remainingWants = limitWants - totalSpentWants;
             let netAvailableStash = memoryStore.incomeBase - aggregateSpent;
 
-            document.getElementById('v-total-stash').innerText = "PKR " + netAvailableStash.toLocaleString();
+            // --- DYNAMIC STASH CARD HEALTH COLOR-CODING ---
+            const stashCardBox = document.getElementById('stash-card-box');
+            const stashAmtTxt = document.getElementById('v-total-stash');
+            stashAmtTxt.innerText = "PKR " + netAvailableStash.toLocaleString();
+
+            stashCardBox.classList.remove('state-safe', 'state-warning', 'state-danger');
+
+            if (netAvailableStash < 0) {
+                stashCardBox.classList.add('state-danger');
+                stashAmtTxt.style.color = "var(--red)";
+            } else if (netAvailableStash <= (memoryStore.incomeBase * 0.30)) {
+                stashCardBox.classList.add('state-warning');
+                stashAmtTxt.style.color = "var(--yellow)";
+            } else {
+                stashCardBox.classList.add('state-safe');
+                stashAmtTxt.style.color = "var(--green)";
+            }
+
             document.getElementById('txt-pool-savings').innerText = "PKR " + targetSavings.toLocaleString();
             
-            // --- NEEDS POOL ALERT SYSTEM ---
+            // --- NEEDS POOL ALERTS ---
             const needsTxt = document.getElementById('txt-pool-needs');
             const needsBar = document.getElementById('bar-pool-needs');
             const needsBadge = document.getElementById('badge-needs-alert');
@@ -603,7 +670,7 @@
                 needsBadge.style.display = "none";
             }
 
-            // --- WANTS POOL ALERT SYSTEM ---
+            // --- WANTS POOL ALERTS ---
             const wantsTxt = document.getElementById('txt-pool-wants');
             const wantsBar = document.getElementById('bar-pool-wants');
             const wantsBadge = document.getElementById('badge-wants-alert');
@@ -623,17 +690,22 @@
                 wantsBadge.style.display = "none";
             }
 
-            // Render Output History Elements
+            // --- FILTERED HISTORY RENDER ---
             const targetContainer = document.getElementById('v-history-container');
             targetContainer.innerHTML = "";
 
-            if (memoryStore.ledger.length === 0) {
-                targetContainer.innerHTML = `<div style="text-align:center; color:var(--text-gray); margin-top:20px; font-size:1.05rem; font-weight:700;">No expenses logged yet.</div>`;
+            let displayLedger = memoryStore.ledger;
+            if (activeFilter !== 'all') {
+                displayLedger = memoryStore.ledger.filter(item => item.allocationType === activeFilter);
+            }
+
+            if (displayLedger.length === 0) {
+                targetContainer.innerHTML = `<div style="text-align:center; color:var(--text-gray); margin-top:20px; font-size:1.05rem; font-weight:700;">No transactions found.</div>`;
                 return;
             }
 
-            [...memoryStore.ledger].reverse().forEach((entry, reverseIdx) => {
-                const targetTrueIdx = memoryStore.ledger.length - 1 - reverseIdx;
+            [...displayLedger].reverse().forEach((entry) => {
+                const realIndex = memoryStore.ledger.indexOf(entry);
                 const wrapper = document.createElement('div');
                 wrapper.className = 'log-item-row';
                 wrapper.innerHTML = `
@@ -643,7 +715,7 @@
                     </div>
                     <div class="log-item-right">
                         <span class="val-cost">-Rs ${entry.cost.toLocaleString()}</span>
-                        <button class="btn-log-del" onclick="purgeSingleRecord(${targetTrueIdx})">✕</button>
+                        <button class="btn-log-del" onclick="purgeSingleRecord(${realIndex})">✕</button>
                     </div>
                 `;
                 targetContainer.appendChild(wrapper);
