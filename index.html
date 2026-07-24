@@ -15,6 +15,7 @@
             --green: #22c55e;
             --red: #ef4444;
             --orange: #f97316;
+            --warning-bg: #451a1a;
         }
 
         * {
@@ -141,7 +142,7 @@
         .main-stash-box .lbl { font-size: 1rem; color: var(--text-gray); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
         .main-stash-box .amt { font-size: 2.8rem; font-weight: 900; color: var(--green); margin-top: 4px; }
 
-        /* 30-30-40 Budget Framework Progress Rows */
+        /* Budget Progress Rows & Alerts */
         .budget-rule-card {
             background-color: var(--card-inner);
             border-radius: 16px;
@@ -149,10 +150,29 @@
             margin-bottom: 20px;
             border: 1px solid #334155;
         }
-        .budget-row { margin-bottom: 12px; }
+        .budget-row { margin-bottom: 14px; }
         .budget-row:last-child { margin-bottom: 0; }
-        .budget-row-meta { display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
+        .budget-row-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
         
+        .alert-badge {
+            background-color: var(--red);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
         .progress-track {
             height: 12px;
             background-color: #374151;
@@ -163,10 +183,10 @@
         .progress-bar-fill {
             height: 100%;
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width 0.3s ease, background-color 0.3s ease;
         }
 
-        /* High Visibility History Log */
+        /* History Log List */
         .log-heading { font-size: 1.1rem; font-weight: 800; color: var(--text-gray); margin-bottom: 10px; }
         .scrollable-history-list {
             flex: 1;
@@ -191,7 +211,6 @@
         .log-item-right .val-cost { font-size: 1.15rem; font-weight: 800; color: var(--red); }
         .btn-log-del { background: none; border: none; color: #f87171; font-size: 1.3rem; padding: 4px; cursor: pointer; }
 
-        /* Universal Primary Logging Trigger Button */
         .btn-trigger-log {
             background-color: var(--blue);
             color: var(--text-white);
@@ -205,7 +224,6 @@
             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
         }
 
-        /* Combined Single Logging Screen Interface Grid */
         .flex-log-layout {
             display: flex;
             flex-direction: column;
@@ -258,7 +276,6 @@
         }
         .num-key:active, .pill-btn:active { background-color: #475569; }
 
-        /* Direct Action Category Save Grid */
         .direct-save-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -277,7 +294,6 @@
         .btn-direct-cat .txt { font-size: 0.95rem; font-weight: 700; }
         .btn-direct-cat:active { opacity: 0.85; transform: scale(0.98); }
 
-        /* Configuration Setup Form Fields */
         .form-input-element {
             background-color: var(--card-inner);
             border: 2px solid #334155;
@@ -288,6 +304,14 @@
             width: 100%;
             margin-bottom: 16px;
             outline: none;
+        }
+
+        .kb-hint {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            margin-top: 6px;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -322,6 +346,7 @@
                 <button class="num-key" onclick="handlerLockInput('0')">0</button>
                 <div class="num-key" style="opacity:0; pointer-events:none;"></div>
             </div>
+            <div class="kb-hint">⌨️ Physical Keyboard Typing Supported</div>
         </div>
 
         <div id="screen-dashboard" class="screen">
@@ -341,7 +366,10 @@
             <div class="budget-rule-card">
                 <div class="budget-row">
                     <div class="budget-row-meta">
-                        <span>🛠️ Needs Pool (30%)</span>
+                        <span>
+                            🛠️ Needs (30%)
+                            <span id="badge-needs-alert" class="alert-badge" style="display: none;">⚠️ OVER BUDGET!</span>
+                        </span>
                         <span id="txt-pool-needs">PKR 0 Left</span>
                     </div>
                     <div class="progress-track">
@@ -351,7 +379,10 @@
                 
                 <div class="budget-row">
                     <div class="budget-row-meta">
-                        <span>🍔 Wants Pool (30%)</span>
+                        <span>
+                            🍔 Wants (30%)
+                            <span id="badge-wants-alert" class="alert-badge" style="display: none;">⚠️ OVER BUDGET!</span>
+                        </span>
                         <span id="txt-pool-wants">PKR 0 Left</span>
                     </div>
                     <div class="progress-track">
@@ -425,6 +456,7 @@
                         <div class="txt">Entertainment (Want)</div>
                     </button>
                 </div>
+                <div class="kb-hint">⌨️ Use Numpad/Numbers on PC</div>
             </div>
         </div>
 
@@ -432,10 +464,10 @@
             <button class="btn-nav-action" style="width:fit-content; margin-bottom:20px;" onclick="viewRoute('screen-dashboard')">← Dashboard</button>
             
             <div class="log-heading">Modify Total Base Income Allowance</div>
-            <input type="number" class="form-input-element" id="cfg-field-allowance" placeholder="e.g. 10000">
+            <input type="number" class="form-input-element" id="cfg-field-allowance" placeholder="e.g. 5000">
 
             <div class="log-heading">Update Security Lock PIN</div>
-            <input type="text" maxlength="4" pattern="[0-9]*" class="form-input-element" id="cfg-field-pin" placeholder="e.g. 5678">
+            <input type="text" maxlength="4" pattern="[0-9]*" class="form-input-element" id="cfg-field-pin" placeholder="e.g. 1234">
 
             <button class="btn-trigger-log" style="background-color: var(--green); margin-top: auto;" onclick="commitSystemSettings()">
                 Save System Preferences
@@ -445,7 +477,6 @@
     </div>
 
     <script>
-        // MASTER CENTRAL STATE CONTROLLER
         let memoryStore = {
             incomeBase: 5000,
             securityPin: "1234",
@@ -454,6 +485,7 @@
 
         let activePinString = "";
         let runningExpenseString = "0";
+        let activeScreen = "screen-lock";
 
         window.onload = function() {
             const extraction = localStorage.getItem('stashTrackerEngineData');
@@ -464,13 +496,34 @@
             document.getElementById('cfg-field-allowance').value = memoryStore.incomeBase;
             document.getElementById('cfg-field-pin').value = memoryStore.securityPin;
             refreshApplicationCore();
+
+            // PHYSICAL KEYBOARD LISTENER FOR PC USERS
+            document.addEventListener('keydown', function(event) {
+                // Ignore keydown if editing setup text inputs
+                if (document.activeElement.tagName === 'INPUT') return;
+
+                const key = event.key;
+
+                if (activeScreen === 'screen-lock') {
+                    if (key >= '0' && key <= '9') {
+                        handlerLockInput(key);
+                    } else if (key === 'Backspace' || key === 'Delete' || key === 'c' || key === 'C') {
+                        handlerLockClear();
+                    }
+                } else if (activeScreen === 'screen-fastlog') {
+                    if (key >= '0' && key <= '9') {
+                        pressExpenseKey(key);
+                    } else if (key === 'Backspace' || key === 'Delete') {
+                        clearExpenseKey();
+                    }
+                }
+            });
         };
 
         function writeToDisk() {
             localStorage.setItem('stashTrackerEngineData', JSON.stringify(memoryStore));
         }
 
-        // Access Lock Interface Execution Logic
         function handlerLockInput(char) {
             if (activePinString.length >= 4) return;
             activePinString += char;
@@ -498,11 +551,12 @@
         }
 
         function viewRoute(targetId) {
+            activeScreen = targetId;
             document.querySelectorAll('.screen').forEach(scr => scr.classList.remove('active'));
             document.getElementById(targetId).classList.add('active');
         }
 
-        // Calculations & Rendering Framework (30-30-40 Framework)
+        // Calculations & Over-Budget Alert Logic
         function refreshApplicationCore() {
             let aggregateSpent = 0;
             let totalSpentNeeds = 0;
@@ -517,7 +571,7 @@
                 }
             });
 
-            // 30-30-40 Limit Allocations Formulas
+            // 30-30-40 Rule Limits calculated directly from Total Base Allowance
             let limitNeeds = Math.floor(memoryStore.incomeBase * 0.30);
             let limitWants = Math.floor(memoryStore.incomeBase * 0.30);
             let targetSavings = Math.floor(memoryStore.incomeBase * 0.40);
@@ -526,19 +580,48 @@
             let remainingWants = limitWants - totalSpentWants;
             let netAvailableStash = memoryStore.incomeBase - aggregateSpent;
 
-            // Update Primary Display Numbers
             document.getElementById('v-total-stash').innerText = "PKR " + netAvailableStash.toLocaleString();
             document.getElementById('txt-pool-savings').innerText = "PKR " + targetSavings.toLocaleString();
             
-            document.getElementById('txt-pool-needs').innerText = "PKR " + remainingNeeds.toLocaleString() + " Left";
-            document.getElementById('txt-pool-wants').innerText = "PKR " + remainingWants.toLocaleString() + " Left";
+            // --- NEEDS POOL ALERT SYSTEM ---
+            const needsTxt = document.getElementById('txt-pool-needs');
+            const needsBar = document.getElementById('bar-pool-needs');
+            const needsBadge = document.getElementById('badge-needs-alert');
 
-            // Map Progress Percentages Visual Track bars
-            let percentNeedsLeft = Math.max(0, Math.min(100, (remainingNeeds / limitNeeds) * 100));
-            let percentWantsLeft = Math.max(0, Math.min(100, (remainingWants / limitWants) * 100));
+            if (remainingNeeds < 0) {
+                needsTxt.innerText = "-PKR " + Math.abs(remainingNeeds).toLocaleString() + " Over";
+                needsTxt.style.color = "var(--red)";
+                needsBar.style.backgroundColor = "var(--red)";
+                needsBar.style.width = "100%";
+                needsBadge.style.display = "inline-flex";
+            } else {
+                needsTxt.innerText = "PKR " + remainingNeeds.toLocaleString() + " Left";
+                needsTxt.style.color = "var(--text-white)";
+                needsBar.style.backgroundColor = "var(--blue)";
+                let pctNeeds = (remainingNeeds / limitNeeds) * 100;
+                needsBar.style.width = pctNeeds + "%";
+                needsBadge.style.display = "none";
+            }
 
-            document.getElementById('bar-pool-needs').style.width = percentNeedsLeft + "%";
-            document.getElementById('bar-pool-wants').style.width = percentWantsLeft + "%";
+            // --- WANTS POOL ALERT SYSTEM ---
+            const wantsTxt = document.getElementById('txt-pool-wants');
+            const wantsBar = document.getElementById('bar-pool-wants');
+            const wantsBadge = document.getElementById('badge-wants-alert');
+
+            if (remainingWants < 0) {
+                wantsTxt.innerText = "-PKR " + Math.abs(remainingWants).toLocaleString() + " Over";
+                wantsTxt.style.color = "var(--red)";
+                wantsBar.style.backgroundColor = "var(--red)";
+                wantsBar.style.width = "100%";
+                wantsBadge.style.display = "inline-flex";
+            } else {
+                wantsTxt.innerText = "PKR " + remainingWants.toLocaleString() + " Left";
+                wantsTxt.style.color = "var(--text-white)";
+                wantsBar.style.backgroundColor = "var(--orange)";
+                let pctWants = (remainingWants / limitWants) * 100;
+                wantsBar.style.width = pctWants + "%";
+                wantsBadge.style.display = "none";
+            }
 
             // Render Output History Elements
             const targetContainer = document.getElementById('v-history-container');
@@ -567,7 +650,6 @@
             });
         }
 
-        // Numeric Logging Handling Mechanics
         function pressExpenseKey(val) {
             if (runningExpenseString === "0") {
                 if (val === "0" || val === "00") return;
@@ -589,7 +671,6 @@
             document.getElementById('v-fastlog-display').innerText = "0";
         }
 
-        // ONE-TAP TRANSACTION EXECUTION LOGIC
         function executeInstantSave(label, marker, budgetType) {
             let ultimateCost = parseInt(runningExpenseString);
             if (ultimateCost <= 0) {
@@ -609,7 +690,6 @@
             writeToDisk();
             refreshApplicationCore();
             
-            // Auto reset inputs and return home instantly
             clearExpenseKey();
             viewRoute('screen-dashboard');
         }
